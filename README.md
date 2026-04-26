@@ -10,6 +10,45 @@ Speaks JSON-RPC over stdio per the [Model Context Protocol](https://modelcontext
 - **Broker stubs** — Coinbase, Polymarket, Kalshi (disabled by default)
 - **NLP placeholders** — sentiment, NER
 
+**Docs:** [tamcp.github.io site](https://rangertaha.github.io/tamcp/) · [Architecture & diagrams](docs/architecture.md) · [Full indicator catalog (330)](docs/indicators.md) · [Changelog](CHANGELOG.md)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    subgraph Client["MCP Client"]
+        C1["Claude Code"]
+        C2["Claude Desktop"]
+        C3["Other MCP client"]
+    end
+
+    Client -- "JSON-RPC<br/>over stdio" --> Server
+
+    subgraph Server["tamcp"]
+        AG["agent<br/>(MCP server bootstrap)"]
+        CFG["config<br/>(HCL, layered merge)"]
+        DB[("SQLite<br/>via GORM")]
+        AG --- CFG
+        AG --- DB
+
+        subgraph Tools["Registered tools"]
+            IND["indicator<br/>(dispatcher → 330)"]
+            PLT["plot_*<br/>(line / scatter / hist / bar / csv_*)"]
+            PRV["provider tools<br/>(csv / massive / polymarket / kalshi)"]
+            BRK["broker tools<br/>(coinbase / polymarket / kalshi)"]
+            NLP["sentiment / ner<br/>(placeholders)"]
+        end
+        AG --- Tools
+    end
+
+    PRV -- "REST" --> EXT1["Massive / Polymarket /<br/>Kalshi APIs"]
+    BRK -- "REST + auth" --> EXT2["Coinbase / Polymarket /<br/>Kalshi trading APIs"]
+    PRV -- "filesystem" --> EXT3["examples/*.csv"]
+    PLT -- "PNG to disk" --> EXT4["data/plots/*.png"]
+```
+
+See [`docs/architecture.md`](docs/architecture.md) for deeper diagrams (config merge, indicator dispatch, registration flow).
+
 ## Contents
 
 - [Quickstart](#quickstart)
@@ -114,6 +153,27 @@ provider "csv" {
 
 Each tool is a separate MCP tool, except indicators which are collapsed behind one dispatcher to keep the model's tool list small (which improves selection accuracy and reduces token overhead).
 
+```mermaid
+flowchart TB
+    Root["MCP tools<br/>exposed by tamcp"] --> Ind
+    Root --> Plt
+    Root --> Prv
+    Root --> Brk
+    Root --> Lng
+
+    Ind["indicator<br/>(1 dispatcher → 330)"]
+    Plt["plot_*<br/>(8 tools)"]
+    Prv["providers"]
+    Brk["brokers"]
+    Lng["languages"]
+
+    Ind --> IndG["candlestick · cycle · math ·<br/>momentum · operator · overlap ·<br/>price · statistic · trend ·<br/>volatility · volume"]
+    Plt --> PltG["line · scatter · histogram · bar ·<br/>terminal · csv_line · csv_scatter ·<br/>csv_histogram"]
+    Prv --> PrvG["csv_bars · massive_* ·<br/>polymarket_* · kalshi_*"]
+    Brk --> BrkG["coinbase_place/cancel/balance ·<br/>polymarket_place/cancel ·<br/>kalshi_place/cancel"]
+    Lng --> LngG["sentiment · ner<br/>(placeholders)"]
+```
+
 ### `indicator` — dispatcher
 
 330 indicators behind one tool. Call shape:
@@ -127,19 +187,27 @@ Discovery:
 - `{"name": "help"}` — list every supported indicator with group and description
 - `{"name": "help:<name>"}` — argument schema for one indicator
 
-Catalog composition:
-
-- **162 TA-Lib v0.4 functions** — overlap, momentum, volume, volatility, statistic, cycle, candlestick patterns, math
-- **168 community indicators** — sourced from Pandas TA, sdcoffey/techan, cinar/indicator, Ta-Lib-Rust, and Yatala. Highlights:
-  - Trend / overlap: `supertrend`, `ichimoku`, `alligator`/`gator`, `frama`, `vidya`, `hwma`/`hwc`, `mcginley`, `alma`
-  - Momentum: `kdj`, `wt` (Wave Trend), `tdi`, `qqe`, `fisher`/`ifisher`, `crsi`, `tsi`/`kst`/`coppock`, `stc`, `smi`, `rmi`
-  - Volatility: `kc`/`kcb`, `donchian`/`donchian_pct`, `bbp`/`bbw`/`bb_squeeze`, `squeeze`/`squeeze_pro`, `ulcer`, `chandexit`
-  - Volume: `vwap`, `vwap_anchored`, `cmf`/`mfi_signal`/`obv_signal`, `kvo`, `efi`, `eom`, `pvi`/`nvi`
-  - Pivots: `pivot_cpr`, `camarilla`, `woodie`, `fib_pivots`, `demark_pivots`
-  - Cycle / DSP: `ssf`, `gaussian`, `cyber_cycle`, `decycler`, `reflex`/`trendflex`
-  - Other: `vortex`, `chande_kroll`, `chandelier_exit`
-
 Unknown names get a fuzzy "did you mean" hint listing the closest matches.
+
+**The full 330-indicator catalog (with group, description, and parameters) is in [`docs/indicators.md`](docs/indicators.md).** Regenerate it with `make indicators-md`.
+
+Quick group breakdown:
+
+| Group | Count | Examples |
+|---|--:|---|
+| momentum | 88 | `rsi`, `macd`, `stoch`, `cci`, `kdj`, `wt`, `tdi`, `qqe`, `fisher`, `tsi`, `stc`, `smi` |
+| candlestick | 61 | `cdldoji`, `cdlhammer`, `cdlengulfing`, `cdlmorningstar`, `cdl3blackcrows` |
+| overlap | 47 | `sma`, `ema`, `bbands`, `supertrend`, `ichimoku`, `frama`, `vidya`, `hwma`, `mcginley`, `alma` |
+| volume | 34 | `obv`, `ad`, `cmf`, `mfi`, `vwap`, `vwap_anchored`, `kvo`, `efi`, `eom`, `pvi`, `nvi` |
+| statistic | 24 | `stddev`, `variance`, `linearreg`, `correl`, `beta`, `zscore`, `kurtosis`, `skew` |
+| volatility | 24 | `atr`, `natr`, `kc`/`kcb`, `donchian`, `bbw`, `squeeze`/`squeeze_pro`, `ulcer`, `chandexit` |
+| math | 15 | `sin`, `cos`, `tan`, `sqrt`, `log10`, `ceil`, `floor`, `exp` |
+| operator | 11 | `add`, `sub`, `mult`, `div`, `min`, `max`, `sum`, `minmax` |
+| price | 10 | `avgprice`, `medprice`, `typprice`, `wclprice`, `hlc3`, `ohlc4`, `heikinashi` |
+| trend | 9 | `pivot_cpr`, `camarilla`, `woodie`, `fib_pivots`, `demark_pivots`, `aroon`, `aroonosc` |
+| cycle | 7 | `ssf`, `gaussian`, `cyber_cycle`, `decycler`, `reflex`, `trendflex`, `htdcperiod` |
+
+Composition: **162 TA-Lib v0.4 functions** + **168 community indicators** sourced from Pandas TA, sdcoffey/techan, cinar/indicator, Ta-Lib-Rust, and Yatala.
 
 ### Plot tools
 
@@ -185,6 +253,7 @@ Disabled by default. Enable per-broker in `config.hcl` after supplying credentia
 
 ```
 cmd/tamcp/                 CLI entry point
+cmd/_dumpindicators/       Maintenance: writes docs/indicators.md (skipped by go build)
 internal/
   agent/                   MCP server bootstrap and lifecycle
   config/                  HCL config loader, layered merge, init/clean helpers
@@ -200,6 +269,7 @@ internal/
     brokers/               coinbase, polymarket, kalshi
     languages/             sentiment, ner
   winservice/              Windows Service Control Manager integration
+docs/                      Architecture and indicator catalog (Mermaid diagrams)
 examples/                  Sample data (prices.csv, orders.csv, pivot.csv, tickers.csv)
 config.hcl                 Local development config
 ```

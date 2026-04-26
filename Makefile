@@ -7,7 +7,7 @@ VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "0.4
 COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
 BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ || echo "unknown")
 
-.PHONY: help run build init server test fmt vet tidy clean bump
+.PHONY: help run build init server test fmt vet tidy clean bump indicators-md
 
 help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*## "}; /^[a-zA-Z0-9_.-]+:.*## / {printf "  %-14s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -38,6 +38,9 @@ vet: ## Run go vet checks
 
 tidy: ## Tidy module dependencies
 	$(GO) mod tidy
+
+indicators-md: ## Regenerate docs/indicators.md from the talib registry
+	$(GO) run ./cmd/_dumpindicators > docs/indicators.md
 
 clean: ## Remove build artifacts and init files
 	$(GO) run $(CMD) init --clean || true
