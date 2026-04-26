@@ -8,7 +8,7 @@ const NAME = "tamcp"
 
 // Version, Commit, BuildDate are wired in via -ldflags from the Makefile.
 var (
-	Version   = "0.4.0"
+	Version   = "0.0.1"
 	Commit    = "dev"
 	BuildDate = "unknown"
 	GoVersion = runtime.Version()

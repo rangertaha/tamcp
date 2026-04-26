@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   moved to `/etc/tamcp/`, `~/.config/tamcp/`, default DB to `./data/tamcp.db`,
   and the systemd unit to `tamcp.service`.
 
-## [0.4.0] - 2026-04-25
+## [0.0.1] - 2026-04-25
 
 ### Added
 - MCP server (`tamcp`) speaking JSON-RPC over stdio per the Model Context Protocol.
@@ -42,5 +42,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `tidy`, `clean`, `bump` (semver tag bumper).
 - Build-time version metadata (`Version`, `Commit`, `BuildDate`) wired via ldflags.
 
-[Unreleased]: https://github.com/rangertaha/tamcp/compare/v0.4.0...HEAD
-[0.4.0]: https://github.com/rangertaha/tamcp/releases/tag/v0.4.0
+[Unreleased]: https://github.com/rangertaha/tamcp/compare/v0.0.0...HEAD
+[0.0.0]: https://github.com/rangertaha/tamcp/releases/tag/v0.0.0
