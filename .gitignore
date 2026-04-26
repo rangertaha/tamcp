@@ -1,0 +1,51 @@
+# Build artifacts
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# Vendor
+/vendor/
+
+# Runtime data
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Generated plot outputs
+/data/plots/
+
+# Logs
+*.log
+
+# Local config overrides
+config.local.hcl
+.env
+.env.local
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
