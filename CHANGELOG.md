@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Renamed the project, binary, module, and on-disk paths from `mcpp` to `tamcp`.
+  Module path is now `github.com/rangertaha/tamcp`; default config locations
+  moved to `/etc/tamcp/`, `~/.config/tamcp/`, default DB to `./data/tamcp.db`,
+  and the systemd unit to `tamcp.service`.
+
 ## [0.4.0] - 2026-04-25
 
 ### Added
